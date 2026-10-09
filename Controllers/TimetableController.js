@@ -463,59 +463,89 @@ for (const course of courses) {
     }
 };
 
-        const getTimetable = async (req, res) => {
-            try {
-                await connectDB();
+const getTimetable = async (req, res) => {
+    try {
+        await connectDB();
 
-                const { examCycle } = req.query;
+        const { examCycle } = req.query;
 
-                if (!examCycle) {
-                    return res.status(400).json({
-                        success: false,
-                        message: 'Exam cycle is required'
-                    });
+        if (!examCycle) {
+            return res.status(400).json({
+                success: false,
+                message: 'Exam cycle is required'
+            });
+        }
+
+        const timetable = await TimetableModel.find({
+            examCycle
+        })
+            .populate({
+                path: 'examCycle',
+                select: 'cycleName academicYear semester examType'
+            })
+            .populate({
+                path: 'examSession',
+                select: 'sessionDate startTime endTime sessionType'
+            })
+            .populate({
+                path: 'course',
+                select: 'courseCode courseName department semester examDuration'
+            })
+            .populate({
+                path: 'classrooms',
+                select: 'roomNumber building floor capacity'
+            })
+            .sort({ examSession: 1, course: 1 })
+            .lean();
+
+        const courseIds = timetable
+            .map(item => item.course?._id)
+            .filter(Boolean);
+
+        const enrollmentCounts = await CourseEnrollmentModel.aggregate([
+            {
+                $match: {
+                    course: { $in: courseIds }
                 }
-
-                const timetable = await TimetableModel.find({
-                    examCycle: examCycle
-                })
-                    .populate({
-                        path: 'examCycle',
-                        select: 'cycleName academicYear semester examType'
-                    })
-                    .populate({
-                        path: 'examSession',
-                        select: 'sessionDate startTime endTime sessionType'
-                    })
-                    .populate({
-                        path: 'course',
-                        select: 'courseCode courseName department semester examDuration'
-                    })
-                    .populate({
-                        path: 'classrooms',
-                        select: 'roomNumber building floor capacity'
-                    })
-                    .sort({
-                        examSession: 1,
-                        course: 1
-                    });
-
-                res.status(200).json({
-                    success: true,
-                    totalEntries: timetable.length,
-                    timetable
-                });
-
-            } catch (error) {
-
-                console.error('Get Timetable Error:', error);
-
-                res.status(500).json({
-                    success: false,
-                    message: 'Internal server error'
-                });
+            },
+            {
+                $group: {
+                    _id: '$course',
+                    enrolledStudents: { $sum: 1 }
+                }
             }
-        };
+        ]);
+
+        const countByCourse = new Map(
+            enrollmentCounts.map(item => [
+                item._id.toString(),
+                item.enrolledStudents
+            ])
+        );
+
+        const enrichedTimetable = timetable.map(item => ({
+            ...item,
+            enrolledStudents: item.course?._id
+                ? countByCourse.get(item.course._id.toString()) || 0
+                : 0
+        }));
+
+        return res.status(200).json({
+            success: true,
+            totalEntries: enrichedTimetable.length,
+            timetable: enrichedTimetable
+        });
+
+    } catch (error) {
+        console.error('Get Timetable Error:', error);
+
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+};
+
 
         module.exports = {
             generateTimetable,
