@@ -1,3 +1,4 @@
+
 const router = require('express').Router();
 
 const {
@@ -5,8 +6,25 @@ const {
     getClassrooms
 } = require('../Controllers/ClassroomController');
 
-router.post('/add', addClassroom);
+const {
+    ensureAuthenticated,
+    authorizeRoles
+} = require('../Middlewares/Auth');
 
-router.get('/', getClassrooms);
+// Only admins can add classrooms
+router.post(
+    '/add',
+    ensureAuthenticated,
+    authorizeRoles('admin'),
+    addClassroom
+);
+
+// Only admins can view classrooms
+router.get(
+    '/',
+    ensureAuthenticated,
+    authorizeRoles('admin'),
+    getClassrooms
+);
 
 module.exports = router;

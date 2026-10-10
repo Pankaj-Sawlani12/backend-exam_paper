@@ -11,7 +11,7 @@ const TeacherSchema = new Schema(
         },
 
         user: {
-            type: Schema.Types.ObjectId,
+            type: mongoose.Schema.Types.ObjectId,
             ref: 'users',
             required: true,
             unique: true

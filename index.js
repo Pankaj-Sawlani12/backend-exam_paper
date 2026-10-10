@@ -16,6 +16,8 @@ const ExamScheduleRouter = require('./Routes/ExamScheduleRouter');
 const TimetableRouter = require('./Routes/TimetableRouter');
 const CourseEnrollmentRouter = require('./Routes/CourseEnrollmentRouter');
 const ConflictRouter = require('./Routes/ConflictRouter');
+const SeatingArrangementRouter = require('./Routes/SeatingArrangementRouter');
+const InvigilationDutyRouter = require('./Routes/InvigilationDutyRouter');
 
 const connectDB = require('./Models/db');
 
@@ -39,7 +41,8 @@ app.use('/exam-schedules', ExamScheduleRouter);
 app.use('/timetable', TimetableRouter);
 app.use('/course-enrollments', CourseEnrollmentRouter);
 app.use('/conflicts', ConflictRouter);
-
+app.use('/seating-arrangements', SeatingArrangementRouter);
+app.use('/invigilation-duties', InvigilationDutyRouter);
 
 app.listen(PORT, () => {
     console.log(`Server is Running on ${PORT}`);
