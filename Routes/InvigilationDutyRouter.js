@@ -24,5 +24,12 @@ router.post(
     generateInvigilationDuties
 );
 
+router.get(
+    '/my-duties',
+    ensureAuthenticated,
+    authorizeRoles('teacher'),
+    getInvigilationDuties
+);
+
 module.exports = router;
 
